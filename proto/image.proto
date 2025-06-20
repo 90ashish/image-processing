@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package imageproc;
+option go_package = "image-proc/proto;proto";
+
+import "google/protobuf/empty.proto";
+
+// Service with a single unary RPC
+service ImageProcessor {
+    // Returns the service version
+    rpc GetVersion(google.protobuf.Empty) returns (VersionResponse);
+}
+
+message VersionResponse {
+    string version = 1;
+}
