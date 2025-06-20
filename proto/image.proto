@@ -12,6 +12,9 @@ service ImageProcessor {
 
     // Phase 2: Client-streaming upload
     rpc Upload(stream UploadRequest) returns (UploadResponse);
+
+    // Phase 3: Server-streaming processing
+    rpc Process(ProcessingRequest) returns (stream ProgressUpdate);
 }
 
 message VersionResponse {
@@ -24,4 +27,14 @@ message UploadRequest{
 
 message UploadResponse{
     string image_id = 1;
+}
+
+message ProcessingRequest{
+    string image_id =1;             // ID returned by Upload
+    repeated string filters = 2;    // e.g. ["blur","edge"]
+}
+
+message ProgressUpdate{
+    int32 percent = 1;              // 0–100
+    string status = 2;              // e.g. "10% complete"
 }

@@ -9,13 +9,6 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-// server implements the ImageProcessor service
-type server struct {
-	version string
-	logger  *zap.SugaredLogger
-	pb.UnimplementedImageProcessorServer
-}
-
 func main() {
 	// logger
 	logger, err := zap.NewProduction()
