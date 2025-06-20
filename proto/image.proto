@@ -7,10 +7,21 @@ import "google/protobuf/empty.proto";
 
 // Service with a single unary RPC
 service ImageProcessor {
-    // Returns the service version
+    // Phase 1: Unary RPC Returns the service version
     rpc GetVersion(google.protobuf.Empty) returns (VersionResponse);
+
+    // Phase 2: Client-streaming upload
+    rpc Upload(stream UploadRequest) returns (UploadResponse);
 }
 
 message VersionResponse {
     string version = 1;
+}
+
+message UploadRequest{
+    bytes chunk = 1;
+}
+
+message UploadResponse{
+    string image_id = 1;
 }
