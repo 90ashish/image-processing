@@ -13,8 +13,8 @@ proto: ## generate proto files
 
 run-client:
 	@echo "Starting client..."
-	go run client/main.go
+	go run client/main.go -file=./test.jpg
 
 run-server:
 	@echo "Starting server..."
-	go run server/main.go
+	go run server/*
