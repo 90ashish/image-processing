@@ -7,6 +7,7 @@ import (
 	pb "image-proc/proto"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -28,7 +29,7 @@ func getVersion(client pb.ImageProcessorClient, sugar *zap.SugaredLogger) {
 }
 
 // uploadFile streams the file contents via the Upload RPC
-func uploadFile(client pb.ImageProcessorClient, filePath string, sugar *zap.SugaredLogger) {
+func uploadFile(client pb.ImageProcessorClient, filePath string, sugar *zap.SugaredLogger) string {
 	sugar.Infof("Starting upload for %s", filePath)
 
 	file, err := os.Open(filePath)
@@ -60,13 +61,38 @@ func uploadFile(client pb.ImageProcessorClient, filePath string, sugar *zap.Suga
 	if err != nil {
 		sugar.Fatalf("Upload failed: %v", err)
 	}
-	fmt.Printf("Uploaded image ID: %s", resp.GetImageId())
+	fmt.Printf("Uploaded image ID: %s\n", resp.GetImageId())
+	return resp.GetImageId()
+}
+
+func processImage(client pb.ImageProcessorClient, imageID string, filters []string, sugar *zap.SugaredLogger) {
+	sugar.Info("Processing with %s with %v", imageID, filters)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	stream, err := client.Process(ctx, &pb.ProcessingRequest{ImageId: imageID, Filters: filters})
+	if err != nil {
+		sugar.Fatalf("process init: %v", err)
+	}
+
+	for {
+		upd, err := stream.Recv()
+		if err == io.EOF {
+			sugar.Info("Proccessing Done")
+			break
+		}
+		if err != nil {
+			sugar.Fatalf("Process recv: %v", err)
+		}
+		sugar.Infof("Progress %d%% - %s", upd.GetPercent(), upd.GetStatus())
+	}
 }
 
 func main() {
 	// command-line flags
 	addr := flag.String("addr", "localhost:50051", "gRPC server address")
 	filePath := flag.String("file", "", "path to image file to upload (optional)")
+	doProcess := flag.Bool("process", false, "run processing RPC")
+	filters := flag.String("filters", "", "comma-separated filters")
 	flag.Parse()
 
 	// initialize logger
@@ -97,10 +123,19 @@ func main() {
 	client := pb.NewImageProcessorClient(conn)
 
 	// Phase 1: GetVersion
-	getVersion(client, sugar)
+	// getVersion(client, sugar)
 
 	// Phase 2: Upload if file flag provided
+	var imgId string
 	if *filePath != "" {
-		uploadFile(client, *filePath, sugar)
+		imgId = uploadFile(client, *filePath, sugar)
+	}
+
+	// Phase 3
+	if *doProcess {
+		if imgId == "" {
+			sugar.Fatal("provide -file to upload before processing")
+		}
+		processImage(client, imgId, strings.Split(*filters, ","), sugar)
 	}
 }

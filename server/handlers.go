@@ -9,10 +9,18 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
+
+// server implements the ImageProcessor service
+type server struct {
+	version string
+	logger  *zap.SugaredLogger
+	pb.UnimplementedImageProcessorServer
+}
 
 // GetVersion returns a static version string
 func (s *server) GetVersion(ctx context.Context, _ *emptypb.Empty) (*pb.VersionResponse, error) {
@@ -54,4 +62,20 @@ func (s *server) Upload(stream pb.ImageProcessor_UploadServer) error {
 			return status.Errorf(codes.Internal, "file write error: %v", err)
 		}
 	}
+}
+
+// Process simulates image processing and streams progress
+func (s *server) Process(req *pb.ProcessingRequest, stream pb.ImageProcessor_ProcessServer) error {
+	s.logger.Info("Starting processing %s with filters %v", req.ImageId, req.Filters)
+	steps := 10
+	for i := 0; i <= steps; i++ {
+		time.Sleep(200 * time.Millisecond)
+		pct := int32(i * 100 / steps)
+		upd := &pb.ProgressUpdate{Percent: pct, Status: fmt.Sprintf("%d%% complete", pct)}
+		if err := stream.Send(upd); err != nil {
+			return status.Errorf(codes.Internal, "send error: %v", err)
+		}
+	}
+	s.logger.Info("Proccessing Completed")
+	return nil
 }

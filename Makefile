@@ -11,10 +11,10 @@ proto: ## generate proto files
 	--go-grpc_out=paths=source_relative:. \
 	proto/image.proto
 
-run-client:
-	@echo "Starting client..."
-	go run client/main.go -file=./test.jpg
-
 run-server:
 	@echo "Starting server..."
-	go run server/*
+	go run server/*.go
+
+run-client:
+	@echo "Starting client..."
+	go run client/main.go -file=./test.jpg -process -filters=blur,edge

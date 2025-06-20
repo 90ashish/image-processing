@@ -22,6 +22,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	ImageProcessor_GetVersion_FullMethodName = "/imageproc.ImageProcessor/GetVersion"
 	ImageProcessor_Upload_FullMethodName     = "/imageproc.ImageProcessor/Upload"
+	ImageProcessor_Process_FullMethodName    = "/imageproc.ImageProcessor/Process"
 )
 
 // ImageProcessorClient is the client API for ImageProcessor service.
@@ -34,6 +35,8 @@ type ImageProcessorClient interface {
 	GetVersion(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*VersionResponse, error)
 	// Phase 2: Client-streaming upload
 	Upload(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UploadRequest, UploadResponse], error)
+	// Phase 3: Server-streaming processing
+	Process(ctx context.Context, in *ProcessingRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ProgressUpdate], error)
 }
 
 type imageProcessorClient struct {
@@ -67,6 +70,25 @@ func (c *imageProcessorClient) Upload(ctx context.Context, opts ...grpc.CallOpti
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type ImageProcessor_UploadClient = grpc.ClientStreamingClient[UploadRequest, UploadResponse]
 
+func (c *imageProcessorClient) Process(ctx context.Context, in *ProcessingRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ProgressUpdate], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &ImageProcessor_ServiceDesc.Streams[1], ImageProcessor_Process_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[ProcessingRequest, ProgressUpdate]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ImageProcessor_ProcessClient = grpc.ServerStreamingClient[ProgressUpdate]
+
 // ImageProcessorServer is the server API for ImageProcessor service.
 // All implementations must embed UnimplementedImageProcessorServer
 // for forward compatibility.
@@ -77,6 +99,8 @@ type ImageProcessorServer interface {
 	GetVersion(context.Context, *emptypb.Empty) (*VersionResponse, error)
 	// Phase 2: Client-streaming upload
 	Upload(grpc.ClientStreamingServer[UploadRequest, UploadResponse]) error
+	// Phase 3: Server-streaming processing
+	Process(*ProcessingRequest, grpc.ServerStreamingServer[ProgressUpdate]) error
 	mustEmbedUnimplementedImageProcessorServer()
 }
 
@@ -92,6 +116,9 @@ func (UnimplementedImageProcessorServer) GetVersion(context.Context, *emptypb.Em
 }
 func (UnimplementedImageProcessorServer) Upload(grpc.ClientStreamingServer[UploadRequest, UploadResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method Upload not implemented")
+}
+func (UnimplementedImageProcessorServer) Process(*ProcessingRequest, grpc.ServerStreamingServer[ProgressUpdate]) error {
+	return status.Errorf(codes.Unimplemented, "method Process not implemented")
 }
 func (UnimplementedImageProcessorServer) mustEmbedUnimplementedImageProcessorServer() {}
 func (UnimplementedImageProcessorServer) testEmbeddedByValue()                        {}
@@ -139,6 +166,17 @@ func _ImageProcessor_Upload_Handler(srv interface{}, stream grpc.ServerStream) e
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type ImageProcessor_UploadServer = grpc.ClientStreamingServer[UploadRequest, UploadResponse]
 
+func _ImageProcessor_Process_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ProcessingRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(ImageProcessorServer).Process(m, &grpc.GenericServerStream[ProcessingRequest, ProgressUpdate]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ImageProcessor_ProcessServer = grpc.ServerStreamingServer[ProgressUpdate]
+
 // ImageProcessor_ServiceDesc is the grpc.ServiceDesc for ImageProcessor service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -156,6 +194,11 @@ var ImageProcessor_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "Upload",
 			Handler:       _ImageProcessor_Upload_Handler,
 			ClientStreams: true,
+		},
+		{
+			StreamName:    "Process",
+			Handler:       _ImageProcessor_Process_Handler,
+			ServerStreams: true,
 		},
 	},
 	Metadata: "proto/image.proto",
