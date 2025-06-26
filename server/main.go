@@ -2,12 +2,16 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	pb "image-proc/proto"
+	"io/ioutil"
 	"net"
 	"time"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
@@ -44,38 +48,55 @@ func loggingStreamInterceptor(logger *zap.SugaredLogger) grpc.StreamServerInterc
 }
 
 func main() {
-	// logger
-	logger, err := zap.NewProduction()
-	if err != nil {
-		panic(err)
-	}
+	// Initialize logger
+	logger, _ := zap.NewProduction()
 	defer logger.Sync()
 	sugar := logger.Sugar()
 
-	// Health service reports SERVING
-	healthServer := health.NewServer()
-	healthServer.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)
+	// Load server cert & key
+	cert, err := tls.LoadX509KeyPair("server.crt", "server.key")
+	if err != nil {
+		sugar.Fatalf("failed to load server key pair: %v", err)
+	}
+	// Load CA cert for client verification (mTLS)
+	caPem, err := ioutil.ReadFile("ca.crt")
+	if err != nil {
+		sugar.Fatalf("failed to read CA cert: %v", err)
+	}
+	caPool := x509.NewCertPool()
+	caPool.AppendCertsFromPEM(caPem)
 
-	// listen
+	tlsCfg := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		ClientCAs:    caPool,
+		// To enforce mTLS, uncomment:
+		// ClientAuth: tls.RequireAndVerifyClientCert,
+	}
+	creds := credentials.NewTLS(tlsCfg)
+
+	// Start listening
 	lis, err := net.Listen("tcp", ":50051")
 	if err != nil {
 		sugar.Fatalf("failed to listen: %v", err)
 	}
-	sugar.Infof("gRPC server listening on %s", lis.Addr())
+	sugar.Infof("gRPC server listening on %s (TLS)", lis.Addr())
 
-	// Build gRPC server with interceptors
+	// Health service
+	healthServer := health.NewServer()
+	healthServer.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)
+
+	// Build gRPC server with TLS and interceptors
 	grpcServer := grpc.NewServer(
+		grpc.Creds(creds),
 		grpc.UnaryInterceptor(loggingUnaryInterceptor(sugar)),
 		grpc.StreamInterceptor(loggingStreamInterceptor(sugar)),
 	)
 
-	// Register our ImageProcessor service
+	// Register service, health & reflection
 	pb.RegisterImageProcessorServer(grpcServer, &server{
 		version: "v0.1.0",
 		logger:  sugar,
 	})
-
-	// Register health and reflection for introspection
 	healthpb.RegisterHealthServer(grpcServer, healthServer)
 	reflection.Register(grpcServer)
 

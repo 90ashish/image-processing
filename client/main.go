@@ -2,7 +2,8 @@ package main
 
 import (
 	"context"
-	"flag"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	pb "image-proc/proto"
 	"io"
@@ -14,6 +15,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -130,20 +132,34 @@ func main() {
 	processFilters := []string{"blur", "edge"}
 	doTune := true
 	tuneParams := []string{"brightness:1.2", "contrast:0.8"}
-	flag.Parse()
 
 	// initialize logger
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
 	sugar := logger.Sugar()
 
-	// set up connection
-	dialCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	conn, err := grpc.DialContext(
-		dialCtx,
+	// Load CA cert to trust the server
+	caPem, err := os.ReadFile("ca.crt")
+	if err != nil {
+		sugar.Fatalf("failed to load CA cert: %v", err)
+	}
+	caPool := x509.NewCertPool()
+	caPool.AppendCertsFromPEM(caPem)
+
+	// Build TLS config (server-only TLS)
+	tlsCfg := &tls.Config{
+		RootCAs: caPool,
+	}
+	// For mTLS, also load client cert/key:
+	// clientCert, err := tls.LoadX509KeyPair("client.crt", "client.key")
+	// tlsCfg.Certificates = []tls.Certificate{clientCert}
+
+	creds := credentials.NewTLS(tlsCfg)
+
+	// Dial using TLS
+	conn, err := grpc.Dial(
 		addr,
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(creds),
 		grpc.WithBlock(),
 		grpc.WithConnectParams(grpc.ConnectParams{Backoff: backoff.Config{
 			BaseDelay:  time.Second,
@@ -156,7 +172,6 @@ func main() {
 		sugar.Fatalf("Failed to connect: %v", err)
 	}
 	defer conn.Close()
-
 	client := pb.NewImageProcessorClient(conn)
 
 	// Phase 1: GetVersion
