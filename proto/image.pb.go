@@ -258,6 +258,110 @@ func (x *ProgressUpdate) GetStatus() string {
 	return ""
 }
 
+type TuneRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ImageId       string                 `protobuf:"bytes,1,opt,name=image_id,json=imageId,proto3" json:"image_id,omitempty"` // ID of the uploaded image
+	Parameter     string                 `protobuf:"bytes,2,opt,name=parameter,proto3" json:"parameter,omitempty"`            // e.g., "brightness", "contrast"
+	Value         float64                `protobuf:"fixed64,3,opt,name=value,proto3" json:"value,omitempty"`                  // new value for the parameter
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TuneRequest) Reset() {
+	*x = TuneRequest{}
+	mi := &file_proto_image_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TuneRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TuneRequest) ProtoMessage() {}
+
+func (x *TuneRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_image_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TuneRequest.ProtoReflect.Descriptor instead.
+func (*TuneRequest) Descriptor() ([]byte, []int) {
+	return file_proto_image_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *TuneRequest) GetImageId() string {
+	if x != nil {
+		return x.ImageId
+	}
+	return ""
+}
+
+func (x *TuneRequest) GetParameter() string {
+	if x != nil {
+		return x.Parameter
+	}
+	return ""
+}
+
+func (x *TuneRequest) GetValue() float64 {
+	if x != nil {
+		return x.Value
+	}
+	return 0
+}
+
+type TuneResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PreviewChunk  []byte                 `protobuf:"bytes,1,opt,name=preview_chunk,json=previewChunk,proto3" json:"preview_chunk,omitempty"` // chunk of preview image data
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TuneResponse) Reset() {
+	*x = TuneResponse{}
+	mi := &file_proto_image_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TuneResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TuneResponse) ProtoMessage() {}
+
+func (x *TuneResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_image_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TuneResponse.ProtoReflect.Descriptor instead.
+func (*TuneResponse) Descriptor() ([]byte, []int) {
+	return file_proto_image_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *TuneResponse) GetPreviewChunk() []byte {
+	if x != nil {
+		return x.PreviewChunk
+	}
+	return nil
+}
+
 var File_proto_image_proto protoreflect.FileDescriptor
 
 const file_proto_image_proto_rawDesc = "" +
@@ -274,12 +378,19 @@ const file_proto_image_proto_rawDesc = "" +
 	"\afilters\x18\x02 \x03(\tR\afilters\"B\n" +
 	"\x0eProgressUpdate\x12\x18\n" +
 	"\apercent\x18\x01 \x01(\x05R\apercent\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06status2\xd9\x01\n" +
+	"\x06status\x18\x02 \x01(\tR\x06status\"\\\n" +
+	"\vTuneRequest\x12\x19\n" +
+	"\bimage_id\x18\x01 \x01(\tR\aimageId\x12\x1c\n" +
+	"\tparameter\x18\x02 \x01(\tR\tparameter\x12\x14\n" +
+	"\x05value\x18\x03 \x01(\x01R\x05value\"3\n" +
+	"\fTuneResponse\x12#\n" +
+	"\rpreview_chunk\x18\x01 \x01(\fR\fpreviewChunk2\x96\x02\n" +
 	"\x0eImageProcessor\x12@\n" +
 	"\n" +
 	"GetVersion\x12\x16.google.protobuf.Empty\x1a\x1a.imageproc.VersionResponse\x12?\n" +
 	"\x06Upload\x12\x18.imageproc.UploadRequest\x1a\x19.imageproc.UploadResponse(\x01\x12D\n" +
-	"\aProcess\x12\x1c.imageproc.ProcessingRequest\x1a\x19.imageproc.ProgressUpdate0\x01B\x18Z\x16image-proc/proto;protob\x06proto3"
+	"\aProcess\x12\x1c.imageproc.ProcessingRequest\x1a\x19.imageproc.ProgressUpdate0\x01\x12;\n" +
+	"\x04Tune\x12\x16.imageproc.TuneRequest\x1a\x17.imageproc.TuneResponse(\x010\x01B\x18Z\x16image-proc/proto;protob\x06proto3"
 
 var (
 	file_proto_image_proto_rawDescOnce sync.Once
@@ -293,24 +404,28 @@ func file_proto_image_proto_rawDescGZIP() []byte {
 	return file_proto_image_proto_rawDescData
 }
 
-var file_proto_image_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_proto_image_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_proto_image_proto_goTypes = []any{
 	(*VersionResponse)(nil),   // 0: imageproc.VersionResponse
 	(*UploadRequest)(nil),     // 1: imageproc.UploadRequest
 	(*UploadResponse)(nil),    // 2: imageproc.UploadResponse
 	(*ProcessingRequest)(nil), // 3: imageproc.ProcessingRequest
 	(*ProgressUpdate)(nil),    // 4: imageproc.ProgressUpdate
-	(*emptypb.Empty)(nil),     // 5: google.protobuf.Empty
+	(*TuneRequest)(nil),       // 5: imageproc.TuneRequest
+	(*TuneResponse)(nil),      // 6: imageproc.TuneResponse
+	(*emptypb.Empty)(nil),     // 7: google.protobuf.Empty
 }
 var file_proto_image_proto_depIdxs = []int32{
-	5, // 0: imageproc.ImageProcessor.GetVersion:input_type -> google.protobuf.Empty
+	7, // 0: imageproc.ImageProcessor.GetVersion:input_type -> google.protobuf.Empty
 	1, // 1: imageproc.ImageProcessor.Upload:input_type -> imageproc.UploadRequest
 	3, // 2: imageproc.ImageProcessor.Process:input_type -> imageproc.ProcessingRequest
-	0, // 3: imageproc.ImageProcessor.GetVersion:output_type -> imageproc.VersionResponse
-	2, // 4: imageproc.ImageProcessor.Upload:output_type -> imageproc.UploadResponse
-	4, // 5: imageproc.ImageProcessor.Process:output_type -> imageproc.ProgressUpdate
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
+	5, // 3: imageproc.ImageProcessor.Tune:input_type -> imageproc.TuneRequest
+	0, // 4: imageproc.ImageProcessor.GetVersion:output_type -> imageproc.VersionResponse
+	2, // 5: imageproc.ImageProcessor.Upload:output_type -> imageproc.UploadResponse
+	4, // 6: imageproc.ImageProcessor.Process:output_type -> imageproc.ProgressUpdate
+	6, // 7: imageproc.ImageProcessor.Tune:output_type -> imageproc.TuneResponse
+	4, // [4:8] is the sub-list for method output_type
+	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -327,7 +442,7 @@ func file_proto_image_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_image_proto_rawDesc), len(file_proto_image_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -79,3 +79,22 @@ func (s *server) Process(req *pb.ProcessingRequest, stream pb.ImageProcessor_Pro
 	s.logger.Info("Proccessing Completed")
 	return nil
 }
+
+// Tune handles bidirectional parameter tuning
+func (s *server) Tune(stream pb.ImageProcessor_TuneServer) error {
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		s.logger.Infof("Tune request: %s = %f on image %s", req.Parameter, req.Value, req.ImageId)
+		// simulate the preview generation
+		preview := []byte(fmt.Sprintf("Preview for %s: %s=%.2f", req.ImageId, req.Parameter, req.Value))
+		if err := stream.Send(&pb.TuneResponse{PreviewChunk: preview}); err != nil {
+			return err
+		}
+	}
+}

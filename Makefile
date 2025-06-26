@@ -17,4 +17,4 @@ run-server:
 
 run-client:
 	@echo "Starting client..."
-	go run client/main.go -file=./test.jpg -process -filters=blur,edge
+	go run client/main.go
