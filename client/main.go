@@ -7,6 +7,7 @@ import (
 	pb "image-proc/proto"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -87,12 +88,48 @@ func processImage(client pb.ImageProcessorClient, imageID string, filters []stri
 	}
 }
 
+// tuneImage opens a bidirectional Tune stream
+func tuneImage(client pb.ImageProcessorClient, imageID string, params []string, sugar *zap.SugaredLogger) {
+	stream, err := client.Tune(context.Background())
+	if err != nil {
+		sugar.Fatalf("Tune init error: %v", err)
+	}
+
+	// recieve loop
+	go func() {
+		for {
+			resp, err := stream.Recv()
+			if err == io.EOF {
+				return
+			}
+			if err != nil {
+				sugar.Fatalf("Tune recv error: %v", err)
+			}
+			sugar.Infof("Received preview chunk: %s", string(resp.PreviewChunk))
+		}
+	}()
+
+	// send loop
+	for _, p := range params {
+		parts := strings.SplitN(p, ":", 2)
+		val, _ := strconv.ParseFloat(parts[1], 64)
+		req := &pb.TuneRequest{ImageId: imageID, Parameter: parts[0], Value: val}
+		if err := stream.Send(req); err != nil {
+			sugar.Fatalf("Tune send error: %v", err)
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	stream.CloseSend()
+}
+
 func main() {
 	// command-line flags
-	addr := flag.String("addr", "localhost:50051", "gRPC server address")
-	filePath := flag.String("file", "", "path to image file to upload (optional)")
-	doProcess := flag.Bool("process", false, "run processing RPC")
-	filters := flag.String("filters", "", "comma-separated filters")
+	addr := "localhost:50051"
+	filePath := "./test.jpg"
+	doProcess := true
+	processFilters := []string{"blur", "edge"}
+	doTune := true
+	tuneParams := []string{"brightness:1.2", "contrast:0.8"}
 	flag.Parse()
 
 	// initialize logger
@@ -105,7 +142,7 @@ func main() {
 	defer cancel()
 	conn, err := grpc.DialContext(
 		dialCtx,
-		*addr,
+		addr,
 		grpc.WithInsecure(),
 		grpc.WithBlock(),
 		grpc.WithConnectParams(grpc.ConnectParams{Backoff: backoff.Config{
@@ -126,16 +163,15 @@ func main() {
 	// getVersion(client, sugar)
 
 	// Phase 2: Upload if file flag provided
-	var imgId string
-	if *filePath != "" {
-		imgId = uploadFile(client, *filePath, sugar)
-	}
+	imgID := uploadFile(client, filePath, sugar)
 
 	// Phase 3
-	if *doProcess {
-		if imgId == "" {
-			sugar.Fatal("provide -file to upload before processing")
-		}
-		processImage(client, imgId, strings.Split(*filters, ","), sugar)
+	if doProcess {
+		processImage(client, imgID, processFilters, sugar)
+	}
+
+	// Phase 4
+	if doTune {
+		tuneImage(client, imgID, tuneParams, sugar)
 	}
 }

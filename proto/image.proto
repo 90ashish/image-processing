@@ -15,6 +15,9 @@ service ImageProcessor {
 
     // Phase 3: Server-streaming processing
     rpc Process(ProcessingRequest) returns (stream ProgressUpdate);
+
+    // Phase 4: Bidirectional “Tune”
+    rpc Tune(stream TuneRequest) returns (stream TuneResponse);
 }
 
 message VersionResponse {
@@ -37,4 +40,14 @@ message ProcessingRequest{
 message ProgressUpdate{
     int32 percent = 1;              // 0–100
     string status = 2;              // e.g. "10% complete"
+}
+
+message TuneRequest {
+    string image_id = 1;    // ID of the uploaded image
+    string parameter = 2;   // e.g., "brightness", "contrast"
+    double value = 3;       // new value for the parameter
+}
+
+message TuneResponse {
+    bytes preview_chunk = 1;    // chunk of preview image data
 }

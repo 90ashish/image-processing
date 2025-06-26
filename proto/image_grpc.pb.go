@@ -23,6 +23,7 @@ const (
 	ImageProcessor_GetVersion_FullMethodName = "/imageproc.ImageProcessor/GetVersion"
 	ImageProcessor_Upload_FullMethodName     = "/imageproc.ImageProcessor/Upload"
 	ImageProcessor_Process_FullMethodName    = "/imageproc.ImageProcessor/Process"
+	ImageProcessor_Tune_FullMethodName       = "/imageproc.ImageProcessor/Tune"
 )
 
 // ImageProcessorClient is the client API for ImageProcessor service.
@@ -37,6 +38,8 @@ type ImageProcessorClient interface {
 	Upload(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UploadRequest, UploadResponse], error)
 	// Phase 3: Server-streaming processing
 	Process(ctx context.Context, in *ProcessingRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ProgressUpdate], error)
+	// Phase 4: Bidirectional “Tune”
+	Tune(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[TuneRequest, TuneResponse], error)
 }
 
 type imageProcessorClient struct {
@@ -89,6 +92,19 @@ func (c *imageProcessorClient) Process(ctx context.Context, in *ProcessingReques
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type ImageProcessor_ProcessClient = grpc.ServerStreamingClient[ProgressUpdate]
 
+func (c *imageProcessorClient) Tune(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[TuneRequest, TuneResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &ImageProcessor_ServiceDesc.Streams[2], ImageProcessor_Tune_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[TuneRequest, TuneResponse]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ImageProcessor_TuneClient = grpc.BidiStreamingClient[TuneRequest, TuneResponse]
+
 // ImageProcessorServer is the server API for ImageProcessor service.
 // All implementations must embed UnimplementedImageProcessorServer
 // for forward compatibility.
@@ -101,6 +117,8 @@ type ImageProcessorServer interface {
 	Upload(grpc.ClientStreamingServer[UploadRequest, UploadResponse]) error
 	// Phase 3: Server-streaming processing
 	Process(*ProcessingRequest, grpc.ServerStreamingServer[ProgressUpdate]) error
+	// Phase 4: Bidirectional “Tune”
+	Tune(grpc.BidiStreamingServer[TuneRequest, TuneResponse]) error
 	mustEmbedUnimplementedImageProcessorServer()
 }
 
@@ -119,6 +137,9 @@ func (UnimplementedImageProcessorServer) Upload(grpc.ClientStreamingServer[Uploa
 }
 func (UnimplementedImageProcessorServer) Process(*ProcessingRequest, grpc.ServerStreamingServer[ProgressUpdate]) error {
 	return status.Errorf(codes.Unimplemented, "method Process not implemented")
+}
+func (UnimplementedImageProcessorServer) Tune(grpc.BidiStreamingServer[TuneRequest, TuneResponse]) error {
+	return status.Errorf(codes.Unimplemented, "method Tune not implemented")
 }
 func (UnimplementedImageProcessorServer) mustEmbedUnimplementedImageProcessorServer() {}
 func (UnimplementedImageProcessorServer) testEmbeddedByValue()                        {}
@@ -177,6 +198,13 @@ func _ImageProcessor_Process_Handler(srv interface{}, stream grpc.ServerStream) 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type ImageProcessor_ProcessServer = grpc.ServerStreamingServer[ProgressUpdate]
 
+func _ImageProcessor_Tune_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(ImageProcessorServer).Tune(&grpc.GenericServerStream[TuneRequest, TuneResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ImageProcessor_TuneServer = grpc.BidiStreamingServer[TuneRequest, TuneResponse]
+
 // ImageProcessor_ServiceDesc is the grpc.ServiceDesc for ImageProcessor service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -199,6 +227,12 @@ var ImageProcessor_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "Process",
 			Handler:       _ImageProcessor_Process_Handler,
 			ServerStreams: true,
+		},
+		{
+			StreamName:    "Tune",
+			Handler:       _ImageProcessor_Tune_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "proto/image.proto",
