@@ -160,7 +160,7 @@ func main() {
 	client := pb.NewImageProcessorClient(conn)
 
 	// Phase 1: GetVersion
-	// getVersion(client, sugar)
+	getVersion(client, sugar)
 
 	// Phase 2: Upload if file flag provided
 	imgID := uploadFile(client, filePath, sugar)

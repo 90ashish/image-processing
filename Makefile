@@ -18,3 +18,6 @@ run-server:
 run-client:
 	@echo "Starting client..."
 	go run client/main.go
+
+check-server-health:
+	grpcurl -plaintext localhost:50051 grpc.health.v1.Health/Check

@@ -104,9 +104,6 @@
   - Send `TuneRequest` messages parsed from `-tune-params` at intervals
   - After sending all, call `stream.CloseSend()`
 
-### Makefile:
-- Update `run-client` to cover `-tune -tune-params="brightness:1.2,contrast:0.8"`
-
 ### Expected Outcomes & Verification:
 - Client logs confirmation of each preview chunk received
 - Server logs each `Tune` request’s parameter change
