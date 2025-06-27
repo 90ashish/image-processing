@@ -3,18 +3,33 @@ syntax = "proto3";
 package imageproc;
 option go_package = "image-proc/proto;proto";
 
+import "google/api/annotations.proto";
 import "google/protobuf/empty.proto";
 
 // Service with a single unary RPC
 service ImageProcessor {
     // Phase 1: Unary RPC Returns the service version
-    rpc GetVersion(google.protobuf.Empty) returns (VersionResponse);
+    rpc GetVersion(google.protobuf.Empty) returns (VersionResponse) {
+        option (google.api.http) = {
+            get: "/v1/version"
+        };
+    }
 
     // Phase 2: Client-streaming upload
-    rpc Upload(stream UploadRequest) returns (UploadResponse);
+    rpc Upload(stream UploadRequest) returns (UploadResponse){
+        option (google.api.http) = {
+            post: "/v1/images:upload"
+            body: "*"
+        };
+    }
 
     // Phase 3: Server-streaming processing
-    rpc Process(ProcessingRequest) returns (stream ProgressUpdate);
+    rpc Process(ProcessingRequest) returns (stream ProgressUpdate){
+        option  (google.api.http) = {
+            post: "/v1/images/{image_id}/process"
+            body: "*"
+        };
+    }
 
     // Phase 4: Bidirectional “Tune”
     rpc Tune(stream TuneRequest) returns (stream TuneResponse);

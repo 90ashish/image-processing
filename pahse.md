@@ -125,7 +125,7 @@
 
 ---
 
-## Phase 6: TLS/mTLS Security
+## Phase 6: TLS/mTLS Security : TODO
 
 **Goal**: Secure communications with TLS and optional client certificate authentication.
 
