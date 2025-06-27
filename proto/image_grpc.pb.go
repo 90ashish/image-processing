@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v5.29.3
-// source: proto/image.proto
+// source: image.proto
 
 package proto
 
@@ -235,5 +235,5 @@ var ImageProcessor_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "proto/image.proto",
+	Metadata: "image.proto",
 }
